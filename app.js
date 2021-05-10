@@ -2,7 +2,7 @@ const path = require('path')
 const http = require('http')
 const express = require('express')
 
-const { userJoinHelper,userDeleteHelper, usersArray } = require('./utils/users')
+const { userJoinHelper, userDeleteHelper, usersObj } = require('./utils/users')
 
 const app = express()
 
@@ -14,30 +14,39 @@ const server = app.listen(port, () => {
 })
 
 const io = require('socket.io')(server)
-var playerOrder = 1
+
 io.on('connection', (socket) => {
   console.log('User has connected')
 
   socket.on('createGame', data => {
-    const user = userJoinHelper(socket.id, data.room,data.players,playerOrder)
+    const user = userJoinHelper(socket.id, data.room,data.players,1)
     socket.join(data.room)
     socket.emit('joinGameSuccess', { user: user })
     if (io.sockets.adapter.rooms.get(data.room).size == data.players) {
       io.to(data.room).emit('startGame', { room: data.room, user: user })
     }
-    
   })
 
   socket.on('joinGame', data => {
-    const checkRoom = usersArray.find((el) => el.room == data.room)
+
+    const checkRoom = Object.keys(usersObj).find((el) => el == data.room)
     if (checkRoom) {
-      playerOrder++
-      const user = userJoinHelper(socket.id, data.room, checkRoom.players,playerOrder)
+      const checkRoomPlayers = usersObj[checkRoom][0].players
+      const checkRoomOrder = Math.max.apply(
+        Math,
+        usersObj[checkRoom].map(function (o) {
+          return o.order
+        })
+      )
+      const user = userJoinHelper(
+        socket.id,
+        data.room,
+        checkRoomPlayers,
+        checkRoomOrder+1
+      )
       socket.join(data.room)
-      const us = usersArray.find((el) => el.id == socket.id)
       socket.emit('joinGameSuccess',{user:user})
-      if (io.sockets.adapter.rooms.get(data.room).size == checkRoom.players) {
-        
+      if (io.sockets.adapter.rooms.get(data.room).size == checkRoomPlayers) {
         io.to(data.room).emit('startGame', { room: data.room, user: user })
         socket.emit('firstPlayer')
       } else {
@@ -49,17 +58,29 @@ io.on('connection', (socket) => {
     }
   })
 
-  var nextPlayerNumber
 
   socket.on('playGame', data => {
     socket.broadcast.to(data.room).emit('gameBoxClick', { btnInfo: data.btnInfo, room: data.room, players: data.players, playerId: socket.id })
     
-    const currentPlayer = usersArray.filter(el => el.order == data.playerOrder)[0]
-    nextPlayerNumber = currentPlayer.order+1
+    const roomArray = usersObj[data.room]
+
+    const currentPlayer = roomArray.filter(
+      (el) => el.order == data.playerOrder
+    )[0]
+    var nextPlayerNumber = currentPlayer.order+1
     if (nextPlayerNumber > data.players) {
       nextPlayerNumber = 1
     }
-    const nextPlayer = usersArray.filter((el) => el.order == nextPlayerNumber)[0]
+
+    const nextPlayer = roomArray.filter(
+      (el) => el.order == nextPlayerNumber
+    )[0]
+
+    
+    console.log(nextPlayer)
+    console.log(usersObj)
+    console.log('-----------')
+
     socket.to(`${nextPlayer.id}`).emit('nextPlayer')
     socket.emit('playerWhoClicked')
   })
