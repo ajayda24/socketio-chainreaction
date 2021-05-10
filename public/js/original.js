@@ -111,7 +111,6 @@ function off(roomId) {
 
 function joinGame() {
   const j = document.getElementById('players-input').value
-  console.log(j);
   socket.emit('joinGame', { room: j })
   socket.on('roomNotExist', () => {
     document.getElementById('players-input').value = 'Code is Invalid'
@@ -132,7 +131,12 @@ function joinGame() {
   })
 }
 
+socket.on('joinGameSuccess', data => {
+  document.getElementById('playerOrderInfo').innerHTML = data.user.order
+})
+
 socket.on('startGame', (data) => {
+  numberOfPlayer = data.user.players
   document.getElementById('game').style.pointerEvents = 'auto'
   document.getElementById('game').style.opacity = '1'
   document.querySelector('body').style.height = ''
@@ -142,6 +146,16 @@ socket.on('startGame', (data) => {
   document.getElementById('roomInfo').innerHTML = 'Join Code : ' + data.room
   document.getElementById('playersInfo').innerHTML =
     'Players : ' + data.user.players
+  
+  document.getElementById('game').style.pointerEvents = 'none'
+  document.getElementById('game').style.opacity = '0.4'
+
+  
+
+  socket.on('firstPlayer', () => {
+    document.getElementById('game').style.pointerEvents = 'auto'
+    document.getElementById('game').style.opacity = '1'
+  })
 })
 
 function gameOverTwoPlayer(player) {
@@ -210,11 +224,19 @@ for (var i = 1; i < col * row + 1; i++) {
 }
 
 socket.on('gameBoxClick', (data) => {
+  ChainReaction(data.btnInfo)
+  chainReactionOutputAndGameOver()
+})
+
+socket.on('nextPlayer', () => {
   console.log('get here')
   document.getElementById('game').style.pointerEvents = 'auto'
   document.getElementById('game').style.opacity = '1'
-  ChainReaction(data.btnInfo)
-  chainReactionOutputAndGameOver()
+})
+
+socket.on('playerWhoClicked', (data) => {
+  document.getElementById('game').style.pointerEvents = 'none'
+  document.getElementById('game').style.opacity = '0.4'
 })
 
 function buttonClick(f) {
@@ -225,12 +247,15 @@ function buttonClick(f) {
   const players = document.getElementById('playersInfo').innerHTML.substring(10)
 
   const btnInfo = { className: f.className, id: f.id }
-  socket.emit('playGame', { btnInfo: btnInfo, room: roomId, players: players })
-
-  socket.on('playerWhoClicked', data => {
-    document.getElementById('game').style.pointerEvents = 'none'
-    document.getElementById('game').style.opacity = '0.4'
+  const playerOrderInfo = document.getElementById('playerOrderInfo').innerHTML
+  socket.emit('playGame', {
+    btnInfo: btnInfo,
+    room: roomId,
+    players: players,
+    playerOrder: playerOrderInfo,
   })
+
+  
 
   ChainReaction(f)
   chainReactionOutputAndGameOver()
