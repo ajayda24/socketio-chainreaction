@@ -5,11 +5,11 @@ var col = 9
 var playernumber = 1
 var charaterArry = [
   '.',
-  '😎',
-  '💥',
+  '😃',
+  '🎯',
   '👽',
-  '🤡',
-  '🐲',
+  '💪',
+  '👻',
   '🌛',
   '👑',
   '🧡',
@@ -20,7 +20,7 @@ var charaterArry = [
   '🤎',
   '🖤',
   '⚽',
-  '💗',
+  '🌎',
   '🔴',
   '🟠',
   '🟡',
@@ -131,30 +131,37 @@ function joinGame() {
   })
 }
 
-socket.on('joinGameSuccess', data => {
+socket.on('joinGameSuccess', (data) => {
   document.getElementById('playerOrderInfo').innerHTML = data.user.order
 })
 
 socket.on('startGame', (data) => {
   numberOfPlayer = data.user.players
-  document.getElementById('game').style.pointerEvents = 'auto'
-  document.getElementById('game').style.opacity = '1'
-  document.querySelector('body').style.height = ''
-  document.querySelector('body').style.overflow = 'auto'
+  // document.getElementById('game').style.pointerEvents = 'auto'
+
+  
+
+  // document.getElementById('game').style.opacity = '1'
   document.getElementById('overlay').style.display = 'none'
 
   document.getElementById('roomInfo').innerHTML = 'Join Code : ' + data.room
   document.getElementById('playersInfo').innerHTML =
     'Players : ' + data.user.players
-  
+
   document.getElementById('game').style.pointerEvents = 'none'
   document.getElementById('game').style.opacity = '0.4'
 
-  
+  document.getElementById('chatBtnId').style.pointerEvents = 'auto'
 
-  socket.on('firstPlayer', () => {
+  socket.on('firstPlayer', (data) => {
     document.getElementById('game').style.pointerEvents = 'auto'
     document.getElementById('game').style.opacity = '1'
+
+    document.getElementById('chatBtnId').style.pointerEvents = 'auto'
+
+    setTimeout(() => {
+      socket.emit('playerTakeMoreTime', { emoji: data.emoji,room:data.room })
+    }, 7000)
   })
 })
 
@@ -223,20 +230,42 @@ for (var i = 1; i < col * row + 1; i++) {
   }
 }
 
+var roomId = document.getElementById('roomInfo').innerHTML.substring(12)
+var chatBtn = document.createElement('img')
+chatBtn.setAttribute('src', 'https://img.icons8.com/carbon-copy/2x/chat.png')
+chatBtn.setAttribute('id', 'chatBtnId')
+chatBtn.setAttribute('class', 'chatBtn')
+chatBtn.setAttribute('onClick', `chatWindow(${roomId})`)
+chatBtn.innerHTML = 'Chat'
+document.getElementById('gameInfo').appendChild(chatBtn)
+
+var notificationRed = document.createElement('p')
+notificationRed.setAttribute('class', 'notifyRed')
+notificationRed.setAttribute('id', 'notifyRedId')
+notificationRed.style.display = 'none'
+document.getElementById('gameInfo').appendChild(notificationRed)
+
 socket.on('gameBoxClick', (data) => {
   ChainReaction(data.btnInfo)
   chainReactionOutputAndGameOver()
 })
 
-socket.on('nextPlayer', () => {
-  console.log('get here')
+socket.on('nextPlayer', (data) => {
   document.getElementById('game').style.pointerEvents = 'auto'
   document.getElementById('game').style.opacity = '1'
+
+  document.getElementById('chatBtnId').style.pointerEvents = 'auto'
+
+  setTimeout(() => {
+    socket.emit('playerTakeMoreTime',{emoji:data.emoji,room:data.room})
+  },7000)
 })
 
 socket.on('playerWhoClicked', (data) => {
   document.getElementById('game').style.pointerEvents = 'none'
   document.getElementById('game').style.opacity = '0.4'
+
+  document.getElementById('chatBtnId').style.pointerEvents = 'auto'
 })
 
 function buttonClick(f) {
@@ -248,17 +277,17 @@ function buttonClick(f) {
 
   const btnInfo = { className: f.className, id: f.id }
   const playerOrderInfo = document.getElementById('playerOrderInfo').innerHTML
-  socket.emit('playGame', {
-    btnInfo: btnInfo,
-    room: roomId,
-    players: players,
-    playerOrder: playerOrderInfo,
-  })
+  if (playerPosition[f.id] == playernumber || playerPosition[f.id] == 0) {
+    socket.emit('playGame', {
+      btnInfo: btnInfo,
+      room: roomId,
+      players: players,
+      playerOrder: playerOrderInfo,
+    })
 
-  
-
-  ChainReaction(f)
-  chainReactionOutputAndGameOver()
+    ChainReaction(f)
+    chainReactionOutputAndGameOver()
+  }
 }
 
 function ChainReaction(e) {
@@ -580,7 +609,6 @@ function chainReactionOutputAndGameOver() {
                 '🔟',
               ]
 
-              console.log(charaterArry)
             }
           }
         }
@@ -588,3 +616,75 @@ function chainReactionOutputAndGameOver() {
     }
   }
 }
+
+
+function chatWindow(rId) {
+  const chatOverlay = document.getElementById('overlay-chat')
+  chatOverlay.style.display = 'inline-block'
+
+  const chatBox = document.getElementById('chat-div')
+  chatBox.scrollTop = chatBox.scrollHeight
+
+  document.getElementById('chatBtnId').setAttribute('onClick', 'closeChat()')
+  document.getElementById('notifyRedId').style.display = 'none'
+  const chatInput = document.getElementById('chat-input')
+  chatInput.focus()
+}
+
+function closeChat() {
+  document.getElementById('overlay-chat').style.display = 'none'
+  document.getElementById('chatBtnId').setAttribute('onClick', 'chatWindow()')
+}
+
+function chatSubmit() {
+  const roomInfo = document.getElementById('roomInfo').innerHTML.substring(12)
+  const chatInput = document.getElementById('chat-input').value
+
+  socket.emit('newChat', { room: roomInfo, chat: chatInput })
+  setTimeout(() => {
+    closeChat()
+  },2000)
+}
+
+socket.on('chatRoom', (data) => {
+  document.getElementById('chat-input').value = ''
+  
+  const chatBox = document.getElementById('chat-div')
+  const p = document.createElement('p')
+  p.setAttribute('class', 'chatContent')
+  p.innerHTML = `${data.user.emoji} - ${data.chat}`
+  chatBox.appendChild(p)
+  chatBox.scrollTop = chatBox.scrollHeight
+})
+
+socket.on('showNotification', () => {
+  document.getElementById('notifyRedId').style.display = 'block'
+})
+
+socket.on('gameInfo', data => {
+  if (data.action == 'info') {
+    document.getElementById('gameInfoContent').innerHTML = `${data.emoji}'s Move`
+  } else if (data.action == 'time') {
+    document.getElementById('gameInfoContent').innerHTML = `${data.emoji} is taking more time`
+  }
+})
+
+socket.on('playerDisconnect', () => {
+  document.getElementById('overlay').style.display = 'block'
+  document.getElementById('chain-reaction-heading').innerHTML =
+    'Your Friend Left the game'
+  document.getElementById('players-input').style.display = 'none'
+  document.getElementById('joinCodeShareLink').style.display = 'none'
+  document.getElementById('startGame').style.display = 'none'
+  document.getElementById('joinGameBtn').style.display = 'block'
+  document.getElementById('joinGameBtn').setAttribute('onclick','window.location.reload()')
+  document.getElementById('joinGameBtn').innerHTML = 'Play Again'
+
+  // document.getElementById('chain-reaction-heading').innerHTML =
+  //   'Your Friend Left the game '
+  // document.getElementById('players-input').placeholder = data.room
+  // document.getElementById('players-input').disabled = true
+  // document.getElementById('joinCodeShareLink').style.display = 'block'
+  // document.getElementById('startGame').setAttribute('disabled', 'true')
+})
+

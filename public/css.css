@@ -4,7 +4,8 @@ html {
 body {
   background-color: black;
   text-align: center;
-  margin: 8rem auto;
+  margin: 2rem auto;
+  overflow: hidden;
 }
 
 .cornerOne {
@@ -88,6 +89,8 @@ body {
   font-size: 1rem;
   position: relative;
 }
+
+
 
 @media (min-width: 250px) {
   html {
@@ -289,4 +292,86 @@ body {
   opacity: 1;
   font-size: 3rem;
 }
+
+#overlay-chat{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  margin: 3rem auto;
+  display: none;
+  background-color: rgba(0,0,0,0.8);
+  z-index: 20;
+  width: 50rem;
+  height: 70rem;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+  font-size: 4rem;
+}
+
+.close-icon{
+  position: absolute;
+  right: 20px;
+  cursor: pointer;
+  color: red;
+}
+
+#chat-heading{
+  
+}
+#chat-input{
+  width: 60%;
+  padding: 2rem;
+}
+#chat-submit{
+  width: 20%;
+  padding: 2rem;
+}
+#chat-div{
+  width: 80%;
+  height: 45rem;
+  margin-bottom: 2rem;
+  background-color: #f9ffff;
+  overflow-y: scroll;
+  
+}
+
+#chat-div .chatContent{
+  color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.158);
+  margin: 1.5rem;
+  border-radius: 10px;
+}
+
+#gameInfo{
+  position: relative;
+  display: flex;
+  width: 60rem;
+  height: 10rem;
+  background-color: rgba(255, 255, 255, 0.753);
+  color: black;
+  font-size: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 10px 10px;
+}
+
+.chatBtn{
+  position: absolute;
+  right: 20px;
+  width: 10rem;
+  /* height: 5rem; */
+  font-size: 2.5rem;
+  margin-top: 1rem;
+}
+
+.notifyRed{
+  border-radius: 100px;
+  background-color: red;
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  right: 40px;
+  top: 25px;
+}
+
 

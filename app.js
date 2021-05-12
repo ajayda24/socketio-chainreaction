@@ -48,7 +48,10 @@ io.on('connection', (socket) => {
       socket.emit('joinGameSuccess',{user:user})
       if (io.sockets.adapter.rooms.get(data.room).size == checkRoomPlayers) {
         io.to(data.room).emit('startGame', { room: data.room, user: user })
-        socket.emit('firstPlayer')
+        const firstPlayer = usersObj[checkRoom].filter(el => el.order == 1)
+        const firstPlayerId = firstPlayer[0].id
+        io.to(data.room).emit('gameInfo', {action:'info',emoji: firstPlayer[0].emoji })
+        socket.to(`${firstPlayerId}`).emit('firstPlayer',{room:data.room,emoji:firstPlayer[0].emoji})
       } else {
         socket.emit('waitForPlayers', { room: data.room, user: user })
       }
@@ -76,12 +79,27 @@ io.on('connection', (socket) => {
       (el) => el.order == nextPlayerNumber
     )[0]
 
-    
-    console.log(nextPlayer)
-    console.log(usersObj)
-    console.log('-----------')
 
-    socket.to(`${nextPlayer.id}`).emit('nextPlayer')
+    socket.to(`${nextPlayer.id}`).emit('nextPlayer',{btnInfo:data.btnInfo,emoji:nextPlayer.emoji,room:data.room})
     socket.emit('playerWhoClicked')
+    io.to(data.room).emit('gameInfo', { action: 'info', emoji: nextPlayer.emoji })
+
+    socket.on('disconnect', () => {
+      userDeleteHelper(socket.id,data.room)
+      io.to(data.room).emit('playerDisconnect', { room: data.room })
+    })
   })
+
+  socket.on('newChat', data => {
+    const user = usersObj[data.room].filter(el => el.id == socket.id)[0]
+    io.to(data.room).emit('chatRoom',{chat:data.chat,user:user})
+    socket.to(data.room).emit('showNotification')
+  })
+
+  socket.on('playerTakeMoreTime', (data) => {
+    socket.broadcast.to(data.room).emit('gameInfo', { action: 'time', emoji: data.emoji })
+  })
+
+  
+
 })
